@@ -56,8 +56,8 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist,
 
    start_time <- Sys.time()
 
-   #output <- parallel::mclapply(file, function(file)Find_slope(file))
-   output <- lapply(file, function(file)Find_slope(file))
+   output <- parallel::mclapply(file, function(file)Find_slope(file))
+   #output <- lapply(file, function(file)Find_slope(file))
 
    end_time <- Sys.time()
    cat(end_time - start_time)
