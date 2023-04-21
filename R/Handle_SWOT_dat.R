@@ -11,9 +11,9 @@
 Produce_SWORD_data <- function(SWORD_dir,Area,Version){
 
    cat(as.character(Sys.time()),"Reformatting SWORD data. This can take a while \n")
-   existing_dirs <- list.dirs(SWORD_dir,recursive=FALSE,full.names = FALSE)
-   path <- grep(Version, existing_dirs, value = TRUE)
-   SWORD_nc_dir <- paste(SWORD_dir,"/",path[1],"/netcdf/",Area,"_sword_",Version,".nc",sep="")
+   #existing_dirs <- list.dirs(SWORD_dir,recursive=FALSE,full.names = FALSE)
+   #path <- intersect(grep(Version, existing_dirs, value = TRUE),grep("nc", existing_dirs, value = TRUE))
+   SWORD_nc_dir <- paste(SWORD_dir,"/SWORD_",Version,"_nc/netcdf/",Area,"_sword_",Version,".nc",sep="")
    file <- h5file(SWORD_nc_dir)
 
    Lon_node <- file[["nodes/x"]][]
@@ -39,5 +39,5 @@ Produce_SWORD_data <- function(SWORD_dir,Area,Version){
 
    df_new <- merge(Node_dat, Reach_dat,all.x=TRUE)
 
-   write.table(df_new, file = paste(SWORD_dir,"/Processed_SWORD/processed_SWORD_",Version,".txt",sep="" ), row.names = FALSE, append = FALSE, col.names = TRUE, sep = ",",quote = FALSE)
+   write.table(df_new, file = paste(SWORD_dir,"/Processed_SWORD_",Version,".txt",sep="" ), row.names = FALSE, append = FALSE, col.names = TRUE, sep = ",",quote = FALSE)
 }

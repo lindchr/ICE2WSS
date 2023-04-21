@@ -13,8 +13,9 @@
 #' @return Nothing. File is produced in output path
 #' Find_slope()
 Find_slope <- function(file2){
+
    Current_file <<- file2 #Used for extracting method data
-   print(as.character(Sys.time()),"Running file",file2,"\n")
+   cat(as.character(Sys.time()),"Running file",file2,"\n")
    dat <- read.table(filelist[file2],sep=" ",header=FALSE)
    dat <- dat[,c(2:5,7,9,8)]
 
@@ -571,7 +572,7 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
    if(exists("SWORD_dat")){#If data is already loaded into R
 
    } else { #If txt file already exist, create path name
-      ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD/processed_SWORD_",Version,".txt",sep="" )
+      ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,".txt",sep="" )
 
       if(!file.exists(ready_SWORD_data)){ #If file does not exist, create
          start_time <- Sys.time()
