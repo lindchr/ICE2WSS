@@ -6,44 +6,26 @@
 # within 2 and 10 km.
 ###########################
 
-
-#' Checks input data and saves output data to file
+#' Find_slope
+#' Checks input data, call all other functions and saves output data to file
 #'
 #' @param file2 Number. File number in satellite input data folder.
 #' @return Nothing. File is produced in output path
 #' Find_slope()
 Find_slope <- function(file2){
 
-   Current_file <<- file2 #Used for extracting method data
-   cat(as.character(Sys.time()),"Running file",file2,"\n")
-   dat <- read.table(filelist[file2],sep=" ",header=FALSE)
-   dat <- dat[,c(2:5,7,9,8)]
+   if(file2 %% 10 == 0){
+      cat(as.character(Sys.time()),"Progress: Running file",file2," in parallel with other. \n")
+   }
 
-   if(!is.na(Occ_thr) & !is.numeric(Occ_thr)){
-      cat("WARNING: Occ_thres is neither Na or numeric value. \n")
-      break
-   }
-   ##### Check data formats
-   if(dim(dat)[2] == 7 & !is.na(Occ_thr)){
-      dat <- dat[dat[,7] > Occ_thr,1:7]
-      colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam","Occurrence")
-   } else if(dim(dat)[2] == 7 & is.na(Occ_thr)) {
-      cat("WARNING: Data contains 7 columns but no occurrence threshold has been defined. Default is 85 \n")
-      colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam","Occurrence")
-      dat <- dat[dat[,7] > 85,1:7]
-   } else if (!(dim(dat)[2] == 6) & !(dim(dat)[2] == 7) ){
-      cat("WARNING: Data must contain 6 or 7 columns (water occurrence optional). Data has",dim(dat)[2],"columns \n")
-   } else {
-      colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Occurrence","Beam")
-   }
+   Current_file <<- file2 #Used for extracting method data
+   dat <- read.table(filelist[file2],sep=",",header=FALSE)
 
    if(dim(dat)[1] < 1){
       return()
    }
 
-   if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
-      cat("WARNING: Data must not contain multiple passes. Time duration covered in file is more than 2 hours \n")
-   }
+   dat <- Check_data_format(dat)
 
    #dat$RawFile <- substr(filelist[file2],nchar(filelist[file2])-33,nchar(filelist[file2])-21)
    #I must handle this. The users raw file can be different
@@ -88,16 +70,16 @@ Find_slope <- function(file2){
    } else {
       output <- slope_output
    }
-   output$Reach_slope <- output$Reach_slope*100
+   output$Reach_slope <- format(round(output$Reach_slope*100,digits=4),nsmall = 4)
 
    if(is.na(Occ_thr)){
       output <- output[,c(1,37,38,39,41,34,43,44,42,40,4:6,7,11,13)]
    } else {
       output <- output[,c(1,38,39,40,42,35,44,45,43,41,4:6,8,12,14)]
-      output[,c(1,2,3,16)] <- round(output[,c(1,2,3,16)],6)
-      output[,c(4,5,6,8,9,10,11)] <- round(output[,c(4,5,6,8,9,10,11)],4)
+      output[,c(1,2,3)] <- format(round(output[,c(1,2,3)],digits=6),nsmall = 6)
+      output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
+      output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)#round(output[,c(4,5,6,8,9,10,11)],4)
    }
-
 
    write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
    return(output)
@@ -122,8 +104,8 @@ Assign_SWORD <- function(dat,i){
    dat_beam <- cbind(dat_beam,SWORD_dat[knn$nn.idx,])
    dat_beam$type <- as.numeric(substr(SWORD_dat$Node_id[knn$nn.idx],14,15))
 
-   next_VS_idx <- knn$nn.idx+1
-   pre_VS_idx <- knn$nn.idx-1
+   #next_VS_idx <- knn$nn.idx+1 #Removed may 3rd
+   #pre_VS_idx <- knn$nn.idx-1
 
    VS_up_idx <- ifelse(SWORD_dat$Node_id[knn$nn.idx+1] > SWORD_dat$Node_id[knn$nn.idx-1],knn$nn.idx+1,knn$nn.idx-1 )
    VS_dn_idx <- ifelse(SWORD_dat$Node_id[knn$nn.idx+1] > SWORD_dat$Node_id[knn$nn.idx-1],knn$nn.idx-1,knn$nn.idx+1 )
@@ -137,10 +119,6 @@ Assign_SWORD <- function(dat,i){
    dat_beam$dist_to_VS <- knn$nn.dists
 
    dat_beam <- dat_beam[dat_beam$type == 1 | dat_beam$type == 3 ,]
-   if(dim(dat_beam)[1] < 1){
-      return()
-   }
-
    if(dim(dat_beam)[1] < 1){
       return()
    }
@@ -237,12 +215,12 @@ Calc_slope <- function(dat,myProj){
 
    XX <- 1
    Maks <- dim(dat)[1]
-   count=0
+   count <- 0
    id_reuse <- c(1)
    use_id <- c(1)
    total_used <- c()
-   while (XX <= (Maks-5)){
 
+   while (XX <= (Maks-5)){
       use_id <- c(1:length(dat[,1]))
 
       if(length(total_used) > 0){
@@ -253,16 +231,14 @@ Calc_slope <- function(dat,myProj){
       approved_ID <- which(dat$Reach_id[use_id] %in% ID_list)
       use_id <- use_id[approved_ID]
 
-      if(length(use_id) < Min_reg_p){
+      if(length(use_id) < Min_reg_p){                          #cat("Not enough regression_dat with this reach id, XX jumps ",2*Min_reg_p,"\n")
          XX <- XX + 2*Min_reg_p
-         #cat("Not enough regression_dat with this reach id, XX jumps ",2*Min_reg_p,"\n")
          next()
       }
 
       regression_dat <- dat[use_id,]
 
-      if(length(unique(na.omit(regression_dat$WaterID))) > 1){
-         #cat("Contains multiple water bodies. This can remove the reach id assigned to XX \n")
+      if(length(unique(na.omit(regression_dat$WaterID))) > 1){  #cat("Contains multiple water bodies. This can remove the reach id assigned to XX \n")
          dist1 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[1]]
          dist2 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[2]]
          if(mean(dist1) > mean(dist2)){
@@ -271,12 +247,11 @@ Calc_slope <- function(dat,myProj){
             regression_dat <- regression_dat[id,]
 
             id_reject <- which(regression_dat$WaterID == unique(regression_dat$WaterID)[1])
-            total_used <- c(total_used,id_reject) #This rejects the points with waterID far from centerline
-                   #If this is not done, we can get a slope using only a lake.
-                   #This will be assigned to the reach id and give the impression that the slope changes
-            if(length(use_id) < Min_reg_p){
+            total_used <- c(total_used,id_reject)              #This rejects the points with waterID far from centerline
+                                                               #If this is not done, we can get a slope using only a lake.
+                                                               #This will be assigned to the reach id and give the impression that the slope changes
+            if(length(use_id) < Min_reg_p){                    #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
                XX <- XX+2*Min_reg_p
-               #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
                next()
             }
          } else {
@@ -287,17 +262,15 @@ Calc_slope <- function(dat,myProj){
             id_reject <- which(regression_dat$WaterID == unique(regression_dat$WaterID)[2])
             total_used <- c(total_used,id_reject)
 
-            if(length(use_id) < Min_reg_p){
+            if(length(use_id) < Min_reg_p){                    #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
                XX <- XX+2*Min_reg_p
-               #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
                next()
             }
          }
       }
 
-      if(min(regression_dat$dist_to_VS) > 0.01){ #In case we only have accepted points in a lake
-         XX <- XX+round(length(regression_dat[,1])/2)
-         #cat("too large dist to centerline (maybe lake ID), XX jumps 30 \n")
+      if(min(regression_dat$dist_to_VS) > 0.01){               #In case we only have accepted points in a lake
+         XX <- XX+round(length(regression_dat[,1])/2)          #cat("too large dist to centerline (maybe lake ID), XX jumps 30 \n")
          next()
       }
 
@@ -308,27 +281,23 @@ Calc_slope <- function(dat,myProj){
       dist <- CalcDist(pos_UTM,as.matrix(cbind(current_reaches$Lon_node,current_reaches$Lat_node)),as.character(myProj))
       regression_dat$river_dist <- dist[,3]-dist[1,3]
 
-      ID <- which(regression_dat$river_dist > -8000) #These are the points that I must reject as they are too far from other points
-      if(length(ID) < Min_reg_p){
+      ID <- which(regression_dat$river_dist > -Max_reg_dist)   #These are the points that I must reject as they are too far from other points
+      if(length(ID) < Min_reg_p){                              #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
          XX <- XX+2*Min_reg_p
-         #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
          next()
       }
 
       regression_dat <- regression_dat[ID,]
 
-      ID <- which(regression_dat$river_dist < (Max_reg_dist-abs(min(regression_dat$river_dist))) )#Accept points that cover less than 8000m
-      if(length(ID) < Min_reg_p){
+      ID <- which(regression_dat$river_dist < (Max_reg_dist-abs(min(regression_dat$river_dist))) )#Accept points that cover less than Max_reg_dist
+      if(length(ID) < Min_reg_p){                              #cat("Too few points within acceptable regression dist, XX jumps",2*Min_reg_p,"\n")
          XX <- XX+2*Min_reg_p
-         #cat("Too few points within acceptable regression dist, XX jumps",2*Min_reg_p,"\n")
          next()
       }
       regression_dat <- regression_dat[ID,]
 
-      if(max(regression_dat$river_dist)-min(regression_dat$river_dist) < Min_reg_dist ){ #If all dists within 8000m are less than 500m, then all dists are less than 500 meters #all(abs(regression_dat$river_dist)
-         XX <- XX + 20
-         #cat("Regression_dist:", max(regression_dat$river_dist)-min(regression_dat$river_dist), "\n")
-         #cat("too small regression dist, XX jumps",20,"\n")
+      if(max(regression_dat$river_dist)-min(regression_dat$river_dist) < Min_reg_dist ){ #If all dists within Max_reg_dist are less than Min_reg_dist, then all dists are less than Min_reg_dist meters apart
+         XX <- XX + 20                                         #cat("Regression_dist:", max(regression_dat$river_dist)-min(regression_dat$river_dist), "XX jumps",20,\n")
          next()
       }
 
@@ -358,8 +327,7 @@ Calc_slope <- function(dat,myProj){
       } else if (dim(up_reach)[1] > 0){
          up_reach_max <- which(up_reach$Node_id == max(up_reach$Node_id))
          if(sqrt( (this_reach$Lon_node[this_reach_min] - up_reach$Lon_node[up_reach_max])^2 +   (this_reach$Lat_node[this_reach_min] - up_reach$Lat_node[up_reach_max])^2   ) > 0.05 & WSS < 0){
-
-            print("   Inverting the distance")
+            #print("   Inverting the distance")
             regression_dat$river_dist <- -1*regression_dat$river_dist
 
             LSR <- lm(regression_dat$H_ortho ~ regression_dat$river_dist)
@@ -367,15 +335,14 @@ Calc_slope <- function(dat,myProj){
             LSR_Rsquared <- summary(LSR)$r.squared
             StdError <- coef(summary(LSR))[2,2]
             pVal <- coef(summary(LSR))[2,4]
-
          }
       }
 
       count=count+1
       output[count,] <- dat[XX,]
       output$R2[count] <- LSR_Rsquared
-      output$WSS[count] <- WSS*100*1000 #cm/km
-      output$StdError[count] <- StdError*100*1000 #cm/km
+      output$WSS[count] <- WSS*100*1000                        #cm/km
+      output$StdError[count] <- StdError*100*1000              #cm/km
       output$pVal[count] <- pVal
       output$Nobs[count] <- dim(regression_dat)[1]
       output$Beam[count] <- paste0(sort(unique(regression_dat$Beam)),collapse='')
@@ -587,4 +554,39 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
       end_time <- Sys.time()
       print(end_time - start_time)
    }
+}
+
+
+
+Check_data_format <- function(dat){
+
+   ##### Check data formats
+   if(dim(dat)[2] == 7 & !is.na(Occ_thr)){ #If occurrence is included and we are happy
+      dat <- dat[dat[,7] > Occ_thr,1:7]
+      colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam","Occurrence")
+      if(any(dat$Occurrence < 0)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is less than 0. Check input data."))}
+      if(any(dat$Occurrence > 100)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is larger than 100. Check input data."))}
+
+   } else if(dim(dat)[2] == 7 & is.na(Occ_thr)) { #If dimensions of data does not correspond to 'no occurrence'
+      stop(paste("Error: Data contains 7 columns but no occurrence threshold has been defined."))
+
+   } else if (!(dim(dat)[2] == 6) & !(dim(dat)[2] == 7) ){ #If dimensions of data is completely wrong
+      warning(paste("Warning: Data must contain 6 or 7 columns (water occurrence optional). Data has",dim(dat)[2],"columns."))
+
+   } else { #If occurrence is not included and we are happy
+      colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam") #Removed "Occurrence" in 2nd of may.
+   }
+
+
+   if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
+      warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
+   }
+
+   if(any(dat$DecYear < 0)) {warning(paste(as.character(Sys.time()),"Warning: Decimal year contains negative values. Check input data."))}
+   if(any(abs(dat$Lat) > 90)) {warning(paste(as.character(Sys.time()),"Warning: Latitude contains values larger than +/-90. Check input data."))}
+   if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Check input data."))}
+   if(any(!nchar(dat$WaterID) == 7)) {warning(paste(as.character(Sys.time()),"Warning: WaterID does not contain 7 digits. Check input data."))}
+   if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Check input data."))}
+
+   return(dat)
 }

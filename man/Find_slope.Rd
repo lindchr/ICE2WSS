@@ -2,7 +2,8 @@
 % Please edit documentation in R/Functions_slope_detection_regression.R
 \name{Find_slope}
 \alias{Find_slope}
-\title{Checks input data and saves output data to file}
+\title{Find_slope
+Checks input data, call all other functions and saves output data to file}
 \usage{
 Find_slope(file2)
 }
@@ -14,5 +15,6 @@ Nothing. File is produced in output path
 Find_slope()
 }
 \description{
-Checks input data and saves output data to file
+Find_slope
+Checks input data, call all other functions and saves output data to file
 }

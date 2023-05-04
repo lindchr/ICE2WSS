@@ -2,14 +2,25 @@
 % Please edit documentation in R/Get_WSE_for_slope_detection.R
 \name{ICE2WSS}
 \alias{ICE2WSS}
-\title{Process all files specified by use in parallel.}
+\title{Calculate River water surface slopes using satellite data and river centerlines}
 \usage{
-ICE2WSS(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist, Min_reg_p, Occ_thr)
+ICE2WSS(
+  Paths,
+  Files,
+  SWORD,
+  Max_reg_dist = 8000,
+  Min_reg_dist = 400,
+  Min_reg_p = 10,
+  Occ_thr = NA
+)
 }
 \arguments{
 \item{Paths}{List of 3 paths: c(Outdir, ATL13_data_path, SWORD_dir)}
 
-\item{Files}{List of files to process.}
+\item{Files}{List of files to process.
+Input data must contain csv files with >space< as delimiter with the following columns:
+DecYear, Latitude, Longitude, Water_height, Water_ID, Beam.
+An additional column containing surface water occurrence in whole numbers between 0 and 100 is optional.}
 
 \item{SWORD}{list. List containing the SWORD version and SWORD area}
 
@@ -25,5 +36,8 @@ ICE2WSS(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist, Min_reg_p, Occ_thr)
 Nothing. File is produced in output path
 }
 \description{
-Process all files specified by use in parallel.
+Process all files specified by user in parallel. Takes water surface elevation data and assign to SWORD centerlines and nodes.
+Apply outlier filtering and divides data in o sections of the river depending on user settings.
+Computes water surface slope based on a regression of the distance along the river vs the water surface elevation.
+The water surface slope is the slope of the regression. Data is outputted in a text file with time, position, slope, and statistical metrics.
 }
