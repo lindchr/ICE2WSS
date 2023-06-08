@@ -15,7 +15,7 @@
 Find_slope <- function(file2){
 
    if(file2 %% 10 == 0){
-      cat(as.character(Sys.time()),"Progress: Running file",file2," in parallel with other. \n")
+      cat(as.character(Sys.time()),"Progress: Running file",file2," in parallel with other files. \n")
    }
 
    Current_file <<- file2 #Used for extracting method data
@@ -138,57 +138,49 @@ Assign_SWORD <- function(dat,i){
 #' @param myProj String containing UTM projection. Is determined based on lat and lon.
 #' @return Main data frame containing outlier filtered data.
 Filter_data <- function(dat,myProj){
-   return_dat <- c()
+  return_dat <- c()
 
-   for(oo in unique(dat$Node_id)){
-      dat_id <- dat[dat$Node_id == oo,]
+  for(oo in unique(dat$Node_id)){
+    dat_id <- dat[dat$Node_id == oo,]
+    dat_reach <- dat[dat$Reach_id == 42264500051,]
+    if(length(unique(dat_id$WaterID)) > 1){
+      dist1 <- dat_id$dist_to_VS[dat_id$WaterID == unique(dat_id$WaterID)[1]]
+      dist2 <- dat_id$dist_to_VS[dat_id$WaterID == unique(dat_id$WaterID)[2]]
+      if(mean(dist1) > mean(dist2)){
+        id <- which(dat_id$WaterID == unique(dat_id$WaterID)[2])
+      } else {
+        id <- which(dat_id$WaterID == unique(dat_id$WaterID)[1])
+      }
+      dat_id <- dat_id[id,]
+    }
 
-      if(length(unique(dat_id$WaterID)) > 1){
-         dist1 <- dat_id$dist_to_VS[dat_id$WaterID == unique(dat_id$WaterID)[1]]
-         dist2 <- dat_id$dist_to_VS[dat_id$WaterID == unique(dat_id$WaterID)[2]]
-         if(mean(dist1) > mean(dist2)){
-            id <- which(dat_id$WaterID == unique(dat_id$WaterID)[2])
-         } else {
-            id <- which(dat_id$WaterID == unique(dat_id$WaterID)[1])
-         }
-         dat_id <- dat_id[id,]
+    if(dim(dat_id)[1] > 2 ){
+
+      if(sd(dat_id$H_ortho) > 0.2){
+        # Detect global point outliers
+        GKD <- density(dat_id$H_ortho) #Gaussian kernel distribution
+        WSE <- GKD$x[which.max(GKD$y)]
+
+        quartiles <- quantile(dat_id$H_ortho, probs=c(.25, .75), na.rm = FALSE)
+        IQR <- IQR(dat_id$H_ortho)
+
+        Lower <- WSE - 1.7*IQR
+        Upper <- WSE + 1.7*IQR
+
+        dat_id <- dat_id[dat_id$H_ortho < Upper & dat_id$H_ortho > Lower,]
+
+        if(dim(dat_id)[1] < 1){
+          next()
+        }
       }
 
-      if(dim(dat_id)[1] > 1){
-         # Detect global point outliers
-         quartiles <- quantile(dat_id$H_ortho, probs=c(.25, .75), na.rm = FALSE)
-         IQR <- IQR(dat_id$H_ortho)
-         Lower <- quartiles[1] - IQR
-         Upper <- quartiles[2] + IQR
-
-         dat_id <- dat_id[dat_id$H_ortho < Upper & dat_id$H_ortho > Lower,]
-         if(dim(dat_id)[1] < 1){
-            next()
-         }
-
-         if(sd(dat_id$H_ortho) > 0.5 | (max(dat_id$H_ortho)-min(dat_id$H_ortho)) >  1.5){
-            if(dim(dat_id)[1] < 5){
-               #cat("    All data rejected as sd was larger than 0.5m or a height difference above 1.5 meters  \n")
-               next()
-            } else {
-               # Detect contextual (conditional) outliers
-               GKD <- density(dat_id$H_ortho) #Gaussian kernel distribution
-               WSE <- GKD$x[which.max(GKD$y)]
-
-               Lower <- WSE - IQR
-               Upper <- WSE + IQR
-               dat_id <- dat_id[dat_id$H_ortho < Upper & dat_id$H_ortho > Lower,]
-               if(dim(dat_id)[1] < 1){
-                  next()
-               }
-            }
-         } #If std > 0.35
-      }#If dim(dat) > 1
-
-      return_dat <- rbind(return_dat,dat_id)
-   }#For each node id
-
-   return(return_dat)
+      if((max(dat_id$H_ortho)-min(dat_id$H_ortho)) >  1.3 | sd(dat_id$H_ortho > 0.5)){
+        next()
+      }
+    }#If dim > 2
+    return_dat <- rbind(return_dat,dat_id)
+  }#For each node id
+  return(return_dat)
 }
 
 
@@ -220,7 +212,7 @@ Calc_slope <- function(dat,myProj){
    use_id <- c(1)
    total_used <- c()
 
-   while (XX <= (Maks-5)){
+   while (XX <= (Maks-Min_reg_p)){
       use_id <- c(1:length(dat[,1]))
 
       if(length(total_used) > 0){
@@ -496,7 +488,11 @@ CalcDist<-function(dat,centerLineLL,myProj){
 
 
 
-
+#' Calculate distance between points
+#'
+#' @param v Point coordinates
+#' @param w input coordinate
+#' @return Distance
 getdist<-function(v, w)sqrt((v[1] - w[1])^2 + (v[2] - w[2])^2)
 
 #' Projects satellite data onto the centerline
@@ -557,7 +553,10 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
 }
 
 
-
+#' Checks data formats and give warnings if data is not as expected. Assigns column names to data frame
+#'
+#' @param dat Main data frame containing satellite and SWORD data
+#' @return Data frame with columns names
 Check_data_format <- function(dat){
 
    ##### Check data formats

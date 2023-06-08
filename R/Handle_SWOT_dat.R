@@ -21,19 +21,20 @@ Produce_SWORD_data <- function(SWORD_dir,Area,Version){
    Node_id <- file[["nodes/node_id"]][]
    Reach_id <- file[["nodes/reach_id"]][]
    Wse <- file[["nodes/wse"]][]
-   Node_length <- file[["nodes/node_length"]][]
-   Node_dat <- cbind(Lon_node,Lat_node,Wse, Node_id,Reach_id,Node_length)
+   #Node_length <- file[["nodes/node_length"]][] #Removed may 23
+   Node_dat <- cbind(Lon_node,Lat_node,Wse, Node_id,Reach_id)#,Node_length)
    Node_dat <- as.data.frame(Node_dat,row.names = FALSE,col.names = names(Node_dat))
 
-   N_rch_down <- file[["reaches/n_rch_down"]][]
-   N_rch_up <- file[["reaches/n_rch_up"]][]
+   #N_rch_down <- file[["reaches/n_rch_down"]][] #Removed may 23
+   #N_rch_up <- file[["reaches/n_rch_up"]][]
    Rch_id_down <- file[["reaches/rch_id_dn"]][,1:4]
    Rch_id_up <- file[["reaches/rch_id_up"]][,1:4]
    Reach_slope <- file[["reaches/slope"]][]
    Reach_id <- file[["reaches/reach_id"]][]
 
-   Reach_dat <- cbind(Reach_id, Reach_slope, N_rch_up,N_rch_down,Rch_id_up,Rch_id_down)
-   Names <- c("Reach_id", "Reach_slope", "N_rch_up","N_rch_down","Rch_id_up1","Rch_id_up2","Rch_id_up3","Rch_id_up4","Rch_id_down1","Rch_id_down2","Rch_id_down3","Rch_id_down4")
+   Reach_dat <- cbind(Reach_id, Reach_slope, Rch_id_up,Rch_id_down)#N_rch_up,N_rch_down
+   #Names <- c("Reach_id", "Reach_slope", "N_rch_up","N_rch_down","Rch_id_up1","Rch_id_up2","Rch_id_up3","Rch_id_up4","Rch_id_down1","Rch_id_down2","Rch_id_down3","Rch_id_down4")
+   Names <- c("Reach_id", "Reach_slope","Rch_id_up1","Rch_id_up2","Rch_id_up3","Rch_id_up4","Rch_id_down1","Rch_id_down2","Rch_id_down3","Rch_id_down4")
    colnames(Reach_dat) <- Names
    Reach_dat <- as.data.frame(Reach_dat,row.names = FALSE,col.names = Names)
 
