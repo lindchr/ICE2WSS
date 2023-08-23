@@ -72,14 +72,17 @@ Find_slope <- function(file2){
    }
    output$Reach_slope <- format(round(output$Reach_slope*100,digits=4),nsmall = 4)
 
-   if(is.na(Occ_thr)){
-      output <- output[,c(1,37,38,39,41,34,43,44,42,40,4:6,7,11,13)]
-   } else {
-      output <- output[,c(1,38,39,40,42,35,44,45,43,41,4:6,8,12,14)]
-      output[,c(1,2,3)] <- format(round(output[,c(1,2,3)],digits=6),nsmall = 6)
-      output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
-      output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)#round(output[,c(4,5,6,8,9,10,11)],4)
-   }
+   output <- output[,c("DecYear","Slope_lon","Slope_lat","WSS","StdError","IntersectAngle","Nobs",
+                  "Resolution","pVal","R2","Wse","WaterID","Beam","Reach_id","Node_id","Reach_slope")]
+   #if(is.na(Occ_thr)){
+   #   output <- output[,c(1,34,35,36,38,31,40,41,39,37,10,5,6,7,11,12)]
+   #} else {
+   #   output <- output[,c(1,35,36,37,39,32,41,42,40,38,11,5,6,8,12,13)]
+
+   output[,c(1,2,3)] <- format(round(output[,c(1,2,3)],digits=6),nsmall = 6)
+   output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
+   output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)#round(output[,c(4,5,6,8,9,10,11)],4)
+   #}
 
    write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
    return(output)
@@ -581,11 +584,11 @@ Check_data_format <- function(dat){
       warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
    }
 
-   if(any(dat$DecYear < 0)) {warning(paste(as.character(Sys.time()),"Warning: Decimal year contains negative values. Check input data."))}
-   if(any(abs(dat$Lat) > 90)) {warning(paste(as.character(Sys.time()),"Warning: Latitude contains values larger than +/-90. Check input data."))}
-   if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Check input data."))}
-   if(any(!nchar(dat$WaterID) == 7)) {warning(paste(as.character(Sys.time()),"Warning: WaterID does not contain 7 digits. Check input data."))}
-   if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Check input data."))}
+   if(any(dat$DecYear < 0)) {warning(paste(as.character(Sys.time()),"Warning: Decimal year contains negative values. Ensure that input data are correct."))}
+   if(any(abs(dat$Lat) > 90)) {warning(paste(as.character(Sys.time()),"Warning: Latitude contains values larger than +/-90. Ensure that input data are correct."))}
+   if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Ensure that input data are correct."))}
+   #if(any(!(nchar(dat$WaterID) == 6 |nchar(dat$WaterID) == 7) )) {warning(paste(as.character(Sys.time()),"Warning: WaterID does not contain 6 or 7 digits. Ensure that input data are correct."))}
+   if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Ensure that input data are correct."))}
 
    return(dat)
 }
