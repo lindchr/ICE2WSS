@@ -74,15 +74,10 @@ Find_slope <- function(file2){
 
    output <- output[,c("DecYear","Slope_lon","Slope_lat","WSS","StdError","IntersectAngle","Nobs",
                   "Resolution","pVal","R2","Wse","WaterID","Beam","Reach_id","Node_id","Reach_slope")]
-   #if(is.na(Occ_thr)){
-   #   output <- output[,c(1,34,35,36,38,31,40,41,39,37,10,5,6,7,11,12)]
-   #} else {
-   #   output <- output[,c(1,35,36,37,39,32,41,42,40,38,11,5,6,8,12,13)]
 
    output[,c(1,2,3)] <- format(round(output[,c(1,2,3)],digits=6),nsmall = 6)
    output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
-   output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)#round(output[,c(4,5,6,8,9,10,11)],4)
-   #}
+   output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)
 
    write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
    return(output)

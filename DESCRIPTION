@@ -1,6 +1,7 @@
 Package: ICE2WSS
+Type: Package
 Title: Use ICESat-2 ATL13 data to get the water surface slope of reaches represented by the SWOT River Database. 
-Version: 0.0.0.9000
+Version: 0.2.0
 Authors@R: 
     person("Linda", "Christoffersen", , "lindchr@space.dtu.dk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-2961-5925"))

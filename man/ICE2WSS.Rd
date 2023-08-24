@@ -37,7 +37,7 @@ Nothing. File is produced in output path
 }
 \description{
 Process all files specified by user in parallel. Takes water surface elevation data and assign to SWORD centerlines and nodes.
-Apply outlier filtering and divides data in o sections of the river depending on user settings.
-Computes water surface slope based on a regression of the distance along the river vs the water surface elevation.
-The water surface slope is the slope of the regression. Data is outputted in a text file with time, position, slope, and statistical metrics.
+ Apply outlier filtering and divides data in o sections of the river depending on user settings.
+ Computes water surface slope based on a regression of the distance along the river vs the water surface elevation.
+ The water surface slope is the slope of the regression. Data is outputted in a text file with time, position, slope, and statistical metrics.
 }
