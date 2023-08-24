@@ -9,9 +9,11 @@ CalcDist(dat, centerLineLL, myProj)
 \arguments{
 \item{dat}{Data coordinates in UTM}
 
+
 \item{centerLineLL}{Coordinates of SWORD centerline in degrees (lon,lat)}
 
 \item{myProj}{String containing UTM projection. Is determined based on lat and lon.}
+
 }
 \value{
 Standard data frame now including the position along the river relative to arbitrary point
