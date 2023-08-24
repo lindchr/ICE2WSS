@@ -25,7 +25,7 @@
 #' @return Nothing. File is produced in output path
 ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
                      Min_reg_p=10 , Occ_thr=NA){
-
+	cat("TEST IF THIS IS UPDATED")
    if (missing(Paths) == TRUE) {stop(paste(as.character(Sys.time()),"Error: Required paths are not provided. See documentation."))}
    if (missing(Files)== TRUE) {stop(paste(as.character(Sys.time()),"Error: List of file to process is not provided."))}
    if (missing(SWORD)== TRUE) {stop(paste(as.character(Sys.time()),"Error: No specifications for SWORD area and version is specified"))}
