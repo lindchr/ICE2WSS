@@ -82,7 +82,7 @@ Find_slope <- function(file2){
       return()
    }
 
-   if(dim(beams_out)[1] < 1){
+   if(dim(beams_out)[1] < Min_reg_p){
       return()
    }
 
