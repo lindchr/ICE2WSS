@@ -581,7 +581,7 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
    if(exists("SWORD_dat")){#If data is already loaded into R
 
    } else { #If txt file already exist, create path name
-      ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,".txt",sep="" )
+      ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" )
 
       if(!file.exists(ready_SWORD_data)){ #If file does not exist, create
          start_time <- Sys.time()

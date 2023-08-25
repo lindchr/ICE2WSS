@@ -40,5 +40,6 @@ Produce_SWORD_data <- function(SWORD_dir,Area,Version){
 
    df_new <- merge(Node_dat, Reach_dat,all.x=TRUE)
 
-   write.table(df_new, file = paste(SWORD_dir,"/Processed_SWORD_",Version,".txt",sep="" ), row.names = FALSE, append = FALSE, col.names = TRUE, sep = ",",quote = FALSE)
+   write.table(df_new, file = paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" ), row.names = FALSE, append = FALSE, col.names = TRUE, sep = ",",quote = FALSE)
+
 }
