@@ -14,12 +14,11 @@
 #' Find_slope()
 Find_slope <- function(file2){
 
-   #if(file2 %% 10 == 0){
+   if(file2 %% 10 == 0){
       cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
-   #}
+   }
 
-   Current_file <<- file2 #Used for extracting method data
-
+   #Current_file <<- file2 #Used for extracting method data
 
    test <- try(read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
 
@@ -36,8 +35,6 @@ Find_slope <- function(file2){
 
    ##### Check data formats
 
-   #Remove lines containing NA
-
    test <- try((dim(dat)[2] == 6 & is.na(Occ_thr))| (dim(dat)[2] == 7 & !is.na(Occ_thr)),silent=TRUE)
 
    if(test ==FALSE){
@@ -51,15 +48,18 @@ Find_slope <- function(file2){
       if(any(dat$Occurrence < 0)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is less than 0. Check input data."))}
       if(any(dat$Occurrence > 100)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is larger than 100. Check input data."))}
 
-   #} else if(dim(dat)[2] == 7 & is.na(Occ_thr)) { #If dimensions of data does not correspond to 'no occurrence'
-   #   stop(paste("Error: Data contains 7 columns but no occurrence threshold has been defined."))
+      if(dim(dat)[1] < Min_reg_p){
+         return()
+      }
 
-   #} else if (!(dim(dat)[2] == 6) & !(dim(dat)[2] == 7) ){ #If dimensions of data is completely wrong
-   #   warning(paste("Warning: Data must contain 6 or 7 columns (water occurrence optional). Data has",dim(dat)[2],"columns."))
+      if(dim(dat)[2] < 5 & dim(dat)[1] == 1){
+         return()
+      }
 
    } else { #If occurrence is not included and we are happy
       colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam")
    }
+
 
    if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
       warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
@@ -70,10 +70,6 @@ Find_slope <- function(file2){
    if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Ensure that input data are correct."))}
    if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Ensure that input data are correct."))}
 
-
-
-
-
    i <- c(1:6)
    beams_out <- lapply(i,function(i)Assign_SWORD(dat,i))
    beams_out <- as.data.frame(sapply(do.call(rbind, beams_out),as.numeric))
@@ -82,11 +78,13 @@ Find_slope <- function(file2){
       return()
    }
 
+
+
    if(dim(beams_out)[1] < Min_reg_p){
       return()
    }
 
-   if(dim(beams_out)[2] < Min_reg_p){
+   if(dim(beams_out)[2] < 5 & dim(beams_out)[1] == 1){
       return()
    }
 
