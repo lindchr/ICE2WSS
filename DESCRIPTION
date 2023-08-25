@@ -13,8 +13,8 @@ Description: R package for processing ICESat-2 ATL13 data and computing water su
     Water surface occurrence data is available: https://global-surface-water.appspot.com/download
     ICESat-2 ATL13: csv files with water surface elevation data seperated by >comma<. 
 	DecYear, Latitude, Longitude, Water_height, Water_ID, Beam, Occurrence
-	2018.80211029, 51.828656814259, 134.349588600222, 653.207214355469, 2009603, 57, 1
-	2018.80211029, 51.828490536001, 134.349562594142, 653.208435058594, 2009603, 87, 1
+	2018.80211029, 51.828656814259, 134.349588600222, 653.207214355469, 2009603, 1, 57
+	2018.80211029, 51.828490536001, 134.349562594142, 653.208435058594, 2009603, 1, 87
 	Place data files in folder with directory defined in the 2nd directory in the input 'Paths'
     SWORD .nc file. Place file in folder with directory defined in the 3rd directory in the input 'Paths'. 
     Input metrics that can be specified by user is described in the documentation of function ICE2WSS. 

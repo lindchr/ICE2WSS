@@ -14,7 +14,7 @@
 #'
 #' @param Paths List of 3 paths: c(Outdir, ATL13_data_path, SWORD_dir)
 #' @param Files List of files to process.
-#'  Input data must contain csv files with >space< as delimiter with the following columns:
+#'  Input data must contain csv files with comma as delimiter with the following columns:
 #'  DecYear, Latitude, Longitude, Water_height, Water_ID, Beam.
 #'  An additional column containing surface water occurrence in whole numbers between 0 and 100 is optional.
 #' @param SWORD list. List containing the SWORD version and SWORD area
@@ -48,7 +48,7 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    Occ_thr <<- Occ_thr
 
    # Handle needed packages
-   my_packages <- c("sp", "rgdal", "hdf5r")                          # Specify your packages
+   my_packages <- c("sp", "rgdal", "hdf5r","RANN")                          # Specify your packages
    not_installed <- my_packages[!(my_packages %in% installed.packages()[ , "Package"])]    # Extract not installed packages
    if(length(not_installed)) install.packages(not_installed)
 
@@ -56,6 +56,7 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    library(rgdal)
    options(scipen=999)
    library(hdf5r)
+   library(RANN)
 
    #Check paths and create output file
    closeAllConnections()
@@ -67,7 +68,7 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
                                  "Resolution [m]","pVal","R2","WSE","WaterID","Beam","ReachID","NodeID","ReachDEMSlope [cm/km]")   ,nrow=1))
 
    file_timestamp <<- format(Sys.time(), "%d%m%Y_%H%M")
-   output_file <<- paste(Paths[1],"WSS_",file_timestamp,".txt",sep="")
+   output_file <<- paste(Paths[1],"/WSS_",file_timestamp,".txt",sep="")
    write.table(Colnames, file = output_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ", ",quote = FALSE)
 
    handle_SWORD(Paths[3], SWORD[1], SWORD[2])
