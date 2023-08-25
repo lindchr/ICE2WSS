@@ -15,23 +15,23 @@
 Find_slope <- function(file2){
 
    #if(file2 %% 10 == 0){
-      cat(as.character(Sys.time()),"Progress: Running file",file2," in parallel with other files. \n")
+      cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
    #}
 
    Current_file <<- file2 #Used for extracting method data
 
 
-   # test <- try(read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
-   #
-   # if(class(test) == "try-error"){
-   #    cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],".\n",test[1],"\n")
-   #    return()
-   # } else if (file.info(filelist[file2])$size == 0){
-   #    cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],". File is empty. \n")
-   #    return()
-   # } else {
-   #    dat <- read.table(filelist[file2],sep=",",header=FALSE)
-   # }
+   test <- try(read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
+
+   if(class(test) == "try-error"){
+      cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],".\n",test[1],"\n")
+      return()
+   } else if (file.info(filelist[file2])$size == 0){
+      cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],". File is empty. \n")
+      return()
+   } else {
+      dat <- read.table(filelist[file2],sep=",",header=FALSE)
+   }
    dat <- read.table(filelist[file2],sep=",",header=FALSE)
 
    ##### Check data formats
@@ -85,6 +85,11 @@ Find_slope <- function(file2){
    if(dim(beams_out)[1] < Min_reg_p){
       return()
    }
+
+   if(dim(beams_out)[2] < Min_reg_p){
+      return()
+   }
+
 
    beams_out <- beams_out[order(beams_out$Node_id),]
 
