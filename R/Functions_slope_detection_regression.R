@@ -84,7 +84,7 @@ Find_slope <- function(file2){
       return()
    }
 
-   if(dim(beams_out)[2] < 5 & dim(beams_out)[1] == 1){
+   if(dim(beams_out)[2] == 1 & dim(beams_out)[1] == 32){
       return()
    }
 
