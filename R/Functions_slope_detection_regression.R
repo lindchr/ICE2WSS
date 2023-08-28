@@ -60,11 +60,6 @@ Find_slope <- function(file2){
       colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam")
    }
 
-   #HELLO
-   #if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
-   #   warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
-   #}
-
    if(any(dat$DecYear < 0)) {warning(paste(as.character(Sys.time()),"Warning: Decimal year contains negative values. Ensure that input data are correct."))}
    if(any(abs(dat$Lat) > 90)) {warning(paste(as.character(Sys.time()),"Warning: Latitude contains values larger than +/-90. Ensure that input data are correct."))}
    if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Ensure that input data are correct."))}
@@ -78,8 +73,6 @@ Find_slope <- function(file2){
       return()
    }
 
-
-
    if(dim(beams_out)[1] < Min_reg_p){
       return()
    }
@@ -87,7 +80,6 @@ Find_slope <- function(file2){
    if(dim(beams_out)[2] == 1 & dim(beams_out)[1] == 32){
       return()
    }
-
 
    beams_out <- beams_out[order(beams_out$Node_id),]
 
@@ -596,57 +588,4 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
    }
 }
 
-#'
-#' #' Checks data formats and give warnings if data is not as expected. Assigns column names to data frame
-#' #'
-#' #' @param dat Main data frame containing satellite and SWORD data
-#' #' @return Data frame with columns names
-#' Check_data_format <- function(dat,Filename){
-#'
-#'    ##### Check data formats
-#'    browser()
-#'    test <- try((dim(dat)[2] == 6 & is.na(Occ_thr))| (dim(dat)[2] == 7 & !is.na(Occ_thr)),silent=TRUE)
-#'
-#'    if(test ==FALSE){
-#'
-#'    }
-#'    if(class(test) == "try-error"){
-#'       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],".\n",test[1],"\n")
-#'       return()
-#'    }
-#'
-#'    if(dim(dat)[2] < 6 | (dim(dat)[2] < 7 & !is.na(Occ_thr))){
-#'       cat(substr(as.character(Sys.time()),1,16),"Load input data failed for file",Filename,". Wrong number of columns \n")
-#'       browser()
-#'       return()
-#'    }
-#'
-#'    if(dim(dat)[2] == 7 & !is.na(Occ_thr)){ #If occurrence is included and we are happy
-#'       dat <- dat[dat[,7] > Occ_thr,1:7]
-#'       colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam","Occurrence")
-#'       if(any(dat$Occurrence < 0)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is less than 0. Check input data."))}
-#'       if(any(dat$Occurrence > 100)) {warning(paste(as.character(Sys.time()),"Warning: Water occurrence is larger than 100. Check input data."))}
-#'
-#'    } else if(dim(dat)[2] == 7 & is.na(Occ_thr)) { #If dimensions of data does not correspond to 'no occurrence'
-#'       stop(paste("Error: Data contains 7 columns but no occurrence threshold has been defined."))
-#'
-#'    } else if (!(dim(dat)[2] == 6) & !(dim(dat)[2] == 7) ){ #If dimensions of data is completely wrong
-#'       warning(paste("Warning: Data must contain 6 or 7 columns (water occurrence optional). Data has",dim(dat)[2],"columns."))
-#'
-#'    } else { #If occurrence is not included and we are happy
-#'       colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam") #Removed "Occurrence" in 2nd of may.
-#'    }
-#'
-#'
-#'    if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
-#'       warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
-#'    }
-#'
-#'    if(any(dat$DecYear < 0)) {warning(paste(as.character(Sys.time()),"Warning: Decimal year contains negative values. Ensure that input data are correct."))}
-#'    if(any(abs(dat$Lat) > 90)) {warning(paste(as.character(Sys.time()),"Warning: Latitude contains values larger than +/-90. Ensure that input data are correct."))}
-#'    if(any(abs(dat$Lon) > 360)) {warning(paste(as.character(Sys.time()),"Warning: Longitude contains values larger than 360. Ensure that input data are correct."))}
-#'    #if(any(!(nchar(dat$WaterID) == 6 |nchar(dat$WaterID) == 7) )) {warning(paste(as.character(Sys.time()),"Warning: WaterID does not contain 6 or 7 digits. Ensure that input data are correct."))}
-#'    if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Ensure that input data are correct."))}
-#'
-#'    return(dat)
-#' }
+
