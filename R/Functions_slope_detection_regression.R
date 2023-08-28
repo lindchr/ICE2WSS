@@ -60,6 +60,7 @@ Find_slope <- function(file2){
       colnames(dat) <- c("DecYear", "Lat", "Lon","H_ortho","WaterID","Beam")
    }
 
+   #HELLO
    #if(max(dat$DecYear)- min(dat$DecYear) > 0.00025){
    #   warning(paste(as.character(Sys.time()),"Warning: Data may not contain multiple passes. Time duration covered in file is more than 2 hours."))
    #}
