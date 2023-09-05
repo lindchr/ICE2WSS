@@ -5,9 +5,9 @@
 ###################################
 
 
-#' Calculate River water surface slopes using satellite data and river centerlines
+#' Calculate River water surface slopes using satellite data and river centre lines
 #'
-#' Process all files specified by user in parallel. Takes water surface elevation data and assign to SWORD centerlines and nodes.
+#' Process all files specified by user in parallel. Takes water surface elevation data and assign to SWORD centre lines and nodes.
 #'  Apply outlier filtering and divides data in o sections of the river depending on user settings.
 #'  Computes water surface slope based on a regression of the distance along the river vs the water surface elevation.
 #'  The water surface slope is the slope of the regression. Data is outputted in a text file with time, position, slope, and statistical metrics.
@@ -25,7 +25,7 @@
 #' @return Nothing. File is produced in output path
 ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
                      Min_reg_p=10 , Occ_thr=NA){
-
+   #utils::globalVariables(c("Max_reg_dist", "Min_reg_dist", "Min_reg_p","Occ_thr"))
    if (missing(Paths) == TRUE) {stop(paste(as.character(Sys.time()),"Error: Required paths are not provided. See documentation."))}
    if (missing(Files)== TRUE) {stop(paste(as.character(Sys.time()),"Error: List of file to process is not provided."))}
    if (missing(SWORD)== TRUE) {stop(paste(as.character(Sys.time()),"Error: No specifications for SWORD area and version is specified"))}
@@ -42,21 +42,18 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    if (!is.character(SWORD) | !length(SWORD)==2) {stop(paste(as.character(Sys.time()),"Error: SWORD is not character of required SWORD info or does not contain 2 elements (version, area)."))}
    if (!is.numeric(Files)) {stop(paste(as.character(Sys.time()),"Error: Files does not contains indices for files to process."))}
 
-   Max_reg_dist <<- Max_reg_dist
-   Min_reg_dist <<- Min_reg_dist
-   Min_reg_p <<- Min_reg_p
-   Occ_thr <<- Occ_thr
-
-   # Handle needed packages
-   my_packages <- c("sp", "rgdal", "hdf5r","RANN")                          # Specify your packages
-   not_installed <- my_packages[!(my_packages %in% installed.packages()[ , "Package"])]    # Extract not installed packages
-   if(length(not_installed)) install.packages(not_installed)
-
-   library(sp)
-   library(rgdal)
+   # # Handle needed packages
+   # my_packages <- c("sp", "rgdal", "hdf5r","RANN")                          # Specify your packages
+   # not_installed <- my_packages[!(my_packages %in% utils::installed.packages()[ , "Package"])]    # Extract not installed packages
+   # if(length(not_installed) > 0){
+   #  utils::install.packages(not_installed)
+   # }
+   #
+   # library(sp)
+   # library(rgdal)
    options(scipen=999)
-   library(hdf5r)
-   library(RANN)
+   # library(hdf5r)
+   # library(RANN)
 
    #Check paths and create output file
    closeAllConnections()
@@ -67,22 +64,22 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    Colnames <- data.frame(matrix(c("DecYear","Lon [deg]","Lat [deg]","WSS [cm/km]","StdError [cm/km]","IntersectAngle [deg]","Nobs",
                                  "Resolution [m]","pVal","R2","WSE","WaterID","Beam","ReachID","NodeID","ReachDEMSlope [cm/km]")   ,nrow=1))
 
-   file_timestamp <<- format(Sys.time(), "%d%m%Y_%H%M")
+   file_timestamp <- format(Sys.time(), "%d%m%Y_%H%M")
    output_file <<- paste(Paths[1],"/WSS_",file_timestamp,".txt",sep="")
-   write.table(Colnames, file = output_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ", ",quote = FALSE)
+   utils::write.table(Colnames, file = output_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ", ",quote = FALSE)
 
    handle_SWORD(Paths[3], SWORD[1], SWORD[2])
 
    #### Process files
-   filelist <<- list.files(Paths[2],full.names = TRUE)
-
+   filelist <- list.files(Paths[2],full.names = TRUE)
    start_time <- Sys.time()
 
    #output <- parallel::mclapply(Files, function(Files)Find_slope(Files))
-   output <- lapply(Files, function(Files)Find_slope(Files))
+   output <- lapply(Files, function(Files)Find_slope(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist,
+                                                     Min_reg_p, Occ_thr,filelist))
 
    end_time <- Sys.time()
-   cat(as.character(Sys.time()),"Total time spent:", end_time - start_time," \n")
+   cat(as.character(Sys.time()),"Total processing time:", end_time - start_time," \n")
 
 }
 

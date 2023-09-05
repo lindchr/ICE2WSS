@@ -4,12 +4,18 @@
 \alias{Calc_slope}
 \title{Iterative process that splits the data frame into sections along the river and calculates the WSS and corresponding statistics.}
 \usage{
-Calc_slope(dat, myProj)
+Calc_slope(dat, myProj, Max_reg_dist, Min_reg_dist, Min_reg_p)
 }
 \arguments{
 \item{dat}{Main data frame containing satellite and SWORD data}
 
 \item{myProj}{String containing UTM projection. Is determined based on lat and lon.}
+
+\item{Max_reg_dist}{A number. Maximum distance along river accepted for slope calculation}
+
+\item{Min_reg_dist}{A number. Minimum distance along river accepted for slope calculation}
+
+\item{Min_reg_p}{A number. Minimum number of water surface elevation points needed for slope calculation}
 }
 \value{
 Data frame of slopes with additional information

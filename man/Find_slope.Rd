@@ -5,10 +5,33 @@
 \title{Find_slope
 Checks input data, call all other functions and saves output data to file}
 \usage{
-Find_slope(file2)
+Find_slope(
+  Paths,
+  file2,
+  SWORD,
+  Max_reg_dist,
+  Min_reg_dist,
+  Min_reg_p,
+  Occ_thr,
+  filelist
+)
 }
 \arguments{
-\item{file2}{Number. File number in satellite input data folder.}
+\item{Paths}{list of paths containing paths from user input to ICE2WSS}
+
+\item{file2}{Number. File number in satellite input data folder}
+
+\item{SWORD}{list. List containing the SWORD version and SWORD area}
+
+\item{Max_reg_dist}{A number. Maximum distance along river accepted for slope calculation}
+
+\item{Min_reg_dist}{A number. Minimum distance along river accepted for slope calculation}
+
+\item{Min_reg_p}{A number. Minimum number of water surface elevation points needed for slope calculation}
+
+\item{Occ_thr}{A number. Minimum water surface occurrence accepted}
+
+\item{filelist}{List of numbers describing files to be processed}
 }
 \value{
 Nothing. File is produced in output path

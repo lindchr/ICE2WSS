@@ -1,26 +1,25 @@
-############################
-#Functions to extract river slope from icesat ATL13
-# Find Slope loads data and extract occurrence > 85
-# Assign_SWORD Project all measurements onto centerline and assignmen SWORD data to satellite data
-# The end of Find slope calculates the river slope for WSE measured at the same time using linear regression
-# within 2 and 10 km.
-###########################
 
 #' Find_slope
 #' Checks input data, call all other functions and saves output data to file
 #'
-#' @param file2 Number. File number in satellite input data folder.
+#' @param Paths list of paths containing paths from user input to ICE2WSS
+#' @param file2 Number. File number in satellite input data folder
+#' @param SWORD list. List containing the SWORD version and SWORD area
+#' @param Max_reg_dist A number. Maximum distance along river accepted for slope calculation
+#' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
+#' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
+#' @param Occ_thr A number. Minimum water surface occurrence accepted
+#' @param filelist List of numbers describing files to be processed
 #' @return Nothing. File is produced in output path
 #' Find_slope()
-Find_slope <- function(file2){
+Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
+                       Min_reg_p, Occ_thr, filelist){
 
    if(file2 %% 10 == 0){
       cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
    }
 
-   #Current_file <<- file2 #Used for extracting method data
-
-   test <- try(read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
+   test <- try(utils::read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
 
    if(class(test) == "try-error"){
       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],".\n",test[1],"\n")
@@ -29,11 +28,8 @@ Find_slope <- function(file2){
       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],". File is empty. \n")
       return()
    } else {
-      dat <- read.table(filelist[file2],sep=",",header=FALSE)
+      dat <- utils::read.table(filelist[file2],sep=",",header=FALSE)
    }
-   dat <- read.table(filelist[file2],sep=",",header=FALSE)
-
-   ##### Check data formats
 
    test <- try((dim(dat)[2] == 6 & is.na(Occ_thr))| (dim(dat)[2] == 7 & !is.na(Occ_thr)),silent=TRUE)
 
@@ -86,8 +82,7 @@ Find_slope <- function(file2){
    #Calculate UTM corr to get distance along centerline in meters
    UTM_zone <- round((beams_out$centerline_lon[1]+180)/6)
    myProj<-as.character(paste("+proj=utm +zone=",UTM_zone," +north ellps=WGS84",sep=""))
-
-   xydat<-project(as.matrix(cbind(beams_out$centerline_lon,beams_out$centerline_lat)), as.character(myProj))
+   xydat<- rgdal::project(as.matrix(cbind(beams_out$centerline_lon,beams_out$centerline_lat)), as.character(myProj))
    beams_out$UTM_E <- xydat[,1]
    beams_out$UTM_N <- xydat[,2]
 
@@ -96,7 +91,7 @@ Find_slope <- function(file2){
       return()
    }
 
-   slope_output <- Calc_slope(beams_out,myProj)
+   slope_output <- Calc_slope(beams_out,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p)
 
    if(is.null(slope_output)){
       return()
@@ -117,7 +112,7 @@ Find_slope <- function(file2){
    output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
    output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)
 
-   write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
+   utils::write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
    return(output)
 }
 
@@ -192,12 +187,12 @@ Filter_data <- function(dat,myProj){
 
     if(dim(dat_id)[1] > 2 ){
 
-      if(sd(dat_id$H_ortho) > 0.2){
+      if(stats::sd(dat_id$H_ortho) > 0.2){
         # Detect global point outliers
-        GKD <- density(dat_id$H_ortho) #Gaussian kernel distribution
+        GKD <- stats::density(dat_id$H_ortho) #Gaussian kernel distribution
         WSE <- GKD$x[which.max(GKD$y)]
 
-        quartiles <- quantile(dat_id$H_ortho, probs=c(.25, .75), na.rm = FALSE)
+        #quartiles <- quantile(dat_id$H_ortho, probs=c(.25, .75), na.rm = FALSE) #This was removed 1 of september
         IQR <- IQR(dat_id$H_ortho)
 
         Lower <- WSE - 1.7*IQR
@@ -210,7 +205,7 @@ Filter_data <- function(dat,myProj){
         }
       }
 
-      if((max(dat_id$H_ortho)-min(dat_id$H_ortho)) >  1.3 | sd(dat_id$H_ortho > 0.5)){
+      if((max(dat_id$H_ortho)-min(dat_id$H_ortho)) >  1.3 | stats::sd(dat_id$H_ortho > 0.5)){
         next()
       }
     }#If dim > 2
@@ -225,8 +220,11 @@ Filter_data <- function(dat,myProj){
 #'
 #' @param dat Main data frame containing satellite and SWORD data
 #' @param myProj String containing UTM projection. Is determined based on lat and lon.
+#' @param Max_reg_dist A number. Maximum distance along river accepted for slope calculation
+#' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
+#' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
 #' @return Data frame of slopes with additional information
-Calc_slope <- function(dat,myProj){
+Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
    output <- dat[1,]
    output$Slope_lon <- NA
    output$Slope_lat <- NA
@@ -266,7 +264,7 @@ Calc_slope <- function(dat,myProj){
 
       regression_dat <- dat[use_id,]
 
-      if(length(unique(na.omit(regression_dat$WaterID))) > 1){  #cat("Contains multiple water bodies. This can remove the reach id assigned to XX \n")
+      if(length(unique(stats::na.omit(regression_dat$WaterID))) > 1){  #cat("Contains multiple water bodies. This can remove the reach id assigned to XX \n")
          dist1 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[1]]
          dist2 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[2]]
          if(mean(dist1) > mean(dist2)){
@@ -329,11 +327,11 @@ Calc_slope <- function(dat,myProj){
          next()
       }
 
-      LSR <- lm(regression_dat$H_ortho ~ regression_dat$river_dist)
-      WSS <- coef(LSR)[2]
+      LSR <- stats::lm(regression_dat$H_ortho ~ regression_dat$river_dist)
+      WSS <- stats::coef(LSR)[2]
       LSR_Rsquared <- summary(LSR)$r.squared
-      StdError <- coef(summary(LSR))[2,2]
-      pVal <- coef(summary(LSR))[2,4]
+      StdError <- stats::coef(summary(LSR))[2,2]
+      pVal <- stats::coef(summary(LSR))[2,4]
 
       this_reach <- current_reaches[current_reaches$Reach_id == ID_list[1],]
       this_reach_min <- which(this_reach$Node_id == min(this_reach$Node_id))
@@ -345,11 +343,11 @@ Calc_slope <- function(dat,myProj){
          if(sqrt( (this_reach$Lon_node[this_reach_min] - dn_reach$Lon_node[dn_reach_max])^2 +   (this_reach$Lat_node[this_reach_min] - dn_reach$Lat_node[dn_reach_max])^2   ) > 0.05 & WSS < 0 & StdError*100*1000 < 3){
             regression_dat$river_dist <- -1*regression_dat$river_dist
 
-            LSR <- lm(regression_dat$H_ortho ~ regression_dat$river_dist)
-            WSS <- coef(LSR)[2]
+            LSR <- stats::lm(regression_dat$H_ortho ~ regression_dat$river_dist)
+            WSS <- stats::coef(LSR)[2]
             LSR_Rsquared <- summary(LSR)$r.squared
-            StdError <- coef(summary(LSR))[2,2]
-            pVal <- coef(summary(LSR))[2,4]
+            StdError <- stats::coef(summary(LSR))[2,2]
+            pVal <- stats::coef(summary(LSR))[2,4]
 
          }
       } else if (dim(up_reach)[1] > 0){
@@ -358,11 +356,11 @@ Calc_slope <- function(dat,myProj){
             #print("   Inverting the distance")
             regression_dat$river_dist <- -1*regression_dat$river_dist
 
-            LSR <- lm(regression_dat$H_ortho ~ regression_dat$river_dist)
-            WSS <- coef(LSR)[2]
+            LSR <- stats::lm(regression_dat$H_ortho ~ regression_dat$river_dist)
+            WSS <- stats::coef(LSR)[2]
             LSR_Rsquared <- summary(LSR)$r.squared
-            StdError <- coef(summary(LSR))[2,2]
-            pVal <- coef(summary(LSR))[2,4]
+            StdError <- stats::coef(summary(LSR))[2,2]
+            pVal <- stats::coef(summary(LSR))[2,4]
          }
       }
 
@@ -374,7 +372,7 @@ Calc_slope <- function(dat,myProj){
       output$pVal[count] <- pVal
       output$Nobs[count] <- dim(regression_dat)[1]
       output$Beam[count] <- paste0(sort(unique(regression_dat$Beam)),collapse='')
-      output$IntersectAngle[count] <- median(regression_dat$IntersectAngle)
+      output$IntersectAngle[count] <- stats::median(regression_dat$IntersectAngle)
 
       mean_dist <- (abs(max(regression_dat$river_dist))+abs(min(regression_dat$river_dist)))/2
       center_id <- regression_dat$Node_id[1]+ mean_dist/200*10
@@ -475,7 +473,7 @@ project_to_centerline <- function(dat){
 #' @return Standard data frame now including the position along the river relative to arbitrary point
 CalcDist<-function(dat,centerLineLL,myProj){
 
-   xy<-project(as.matrix(centerLineLL[,1:2]), myProj)
+   xy<-rgdal::project(as.matrix(centerLineLL[,1:2]), myProj)
    xydat <- dat[,1:2]
 
    # calculate length of line segments of centerLine
@@ -582,7 +580,7 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
       }
       #Load SWORD text file
       start_time <- Sys.time()
-      SWORD_dat <<- read.table(ready_SWORD_data,sep=",",header=TRUE)
+      SWORD_dat <<- utils::read.table(ready_SWORD_data,sep=",",header=TRUE)
       end_time <- Sys.time()
       print(end_time - start_time)
    }
