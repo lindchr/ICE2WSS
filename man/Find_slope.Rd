@@ -13,7 +13,8 @@ Find_slope(
   Min_reg_dist,
   Min_reg_p,
   Occ_thr,
-  filelist
+  filelist,
+  output_file
 )
 }
 \arguments{

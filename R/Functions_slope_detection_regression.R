@@ -13,11 +13,11 @@
 #' @return Nothing. File is produced in output path
 #' Find_slope()
 Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
-                       Min_reg_p, Occ_thr, filelist){
+                       Min_reg_p, Occ_thr, filelist,output_file){
 
-   if(file2 %% 10 == 0){
+   #if(file2 %% 10 == 0){
       cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
-   }
+   #}
 
    test <- try(utils::read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
 
@@ -567,7 +567,7 @@ Project_angle <- function(dat){
 handle_SWORD <- function(SWORD_dir, Version, Area){
 
    if(exists("SWORD_dat")){#If data is already loaded into R
-
+      cat("SWORD Data already loaded for area:",Area,"\n")
    } else { #If txt file already exist, create path name
       ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" )
 
@@ -575,7 +575,7 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
          start_time <- Sys.time()
          Produce_SWORD_data(SWORD_dir,Area,Version)
          end_time <- Sys.time()
-         print(end_time - start_time)
+         cat("Loaded SWORD data for",Area,"which took",end_time - start_time,"\n")
 
       }
       #Load SWORD text file

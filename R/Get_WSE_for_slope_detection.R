@@ -23,9 +23,10 @@
 #' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
 #' @param Occ_thr A number. Minimum water surface occurrence accepted. See https://global-surface-water.appspot.com/
 #' @return Nothing. File is produced in output path
+#' @export
 ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
                      Min_reg_p=10 , Occ_thr=NA){
-   #utils::globalVariables(c("Max_reg_dist", "Min_reg_dist", "Min_reg_p","Occ_thr"))
+
    if (missing(Paths) == TRUE) {stop(paste(as.character(Sys.time()),"Error: Required paths are not provided. See documentation."))}
    if (missing(Files)== TRUE) {stop(paste(as.character(Sys.time()),"Error: List of file to process is not provided."))}
    if (missing(SWORD)== TRUE) {stop(paste(as.character(Sys.time()),"Error: No specifications for SWORD area and version is specified"))}
@@ -42,18 +43,7 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    if (!is.character(SWORD) | !length(SWORD)==2) {stop(paste(as.character(Sys.time()),"Error: SWORD is not character of required SWORD info or does not contain 2 elements (version, area)."))}
    if (!is.numeric(Files)) {stop(paste(as.character(Sys.time()),"Error: Files does not contains indices for files to process."))}
 
-   # # Handle needed packages
-   # my_packages <- c("sp", "rgdal", "hdf5r","RANN")                          # Specify your packages
-   # not_installed <- my_packages[!(my_packages %in% utils::installed.packages()[ , "Package"])]    # Extract not installed packages
-   # if(length(not_installed) > 0){
-   #  utils::install.packages(not_installed)
-   # }
-   #
-   # library(sp)
-   # library(rgdal)
    options(scipen=999)
-   # library(hdf5r)
-   # library(RANN)
 
    #Check paths and create output file
    closeAllConnections()
@@ -74,9 +64,28 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    filelist <- list.files(Paths[2],full.names = TRUE)
    start_time <- Sys.time()
 
+   # #library(parallel)
+   # #library(doParallel)
+   # #library(doMC)
+   # #library(doSNOW)
+   #
+   # #Cores to be used: All-1
+   # C <- parallel::detectCores(all.tests = FALSE, logical = TRUE) -1
+   # cl <- makeCluster(C)
+   # registerDoParallel(cl)
+   # clusterExport(cl, "SWORD_dat")
+   # clusterExport(cl, "output_file")
+   # foreach(i=Files) %dopar% {
+   #    source("/home/linda/ICE2WSS_github/ICE2WSS/R/Functions_slope_detection_regression.R")
+   #
+   #    Find_slope(Paths, i, SWORD_dat, Max_reg_dist, Min_reg_dist,Min_reg_p, Occ_thr,filelist,output_file)
+   # }
+   # stopCluster(cl)
+
+
    #output <- parallel::mclapply(Files, function(Files)Find_slope(Files))
    output <- lapply(Files, function(Files)Find_slope(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist,
-                                                     Min_reg_p, Occ_thr,filelist))
+                                                  Min_reg_p, Occ_thr,filelist,output_file))
 
    end_time <- Sys.time()
    cat(as.character(Sys.time()),"Total processing time:", end_time - start_time," \n")
