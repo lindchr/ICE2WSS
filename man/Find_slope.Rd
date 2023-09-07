@@ -33,6 +33,8 @@ Find_slope(
 \item{Occ_thr}{A number. Minimum water surface occurrence accepted}
 
 \item{filelist}{List of numbers describing files to be processed}
+
+\item{output_file}{Name of output file. Created automatically by the script}
 }
 \value{
 Nothing. File is produced in output path

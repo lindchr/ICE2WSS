@@ -9,11 +9,12 @@
 #' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
 #' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
 #' @param Occ_thr A number. Minimum water surface occurrence accepted
+#' @param output_file Name of output file. Created automatically by the script
 #' @param filelist List of numbers describing files to be processed
 #' @return Nothing. File is produced in output path
 #' Find_slope()
 Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
-                       Min_reg_p, Occ_thr, filelist,output_file){
+                       Min_reg_p, Occ_thr, filelist, output_file){
 
    #if(file2 %% 10 == 0){
       cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
