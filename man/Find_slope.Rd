@@ -38,7 +38,6 @@ Find_slope(
 }
 \value{
 Nothing. File is produced in output path
-Find_slope()
 }
 \description{
 Find_slope

@@ -8,6 +8,7 @@
 #' @param Area String. Contains area of interest of SWORD data
 #' @param Version String. SWORD data
 #' @return Nothing. File is produced in SWORD subfolder
+#' @export
 Produce_SWORD_data <- function(SWORD_dir,Area,Version){
 
    cat(as.character(Sys.time()),"Reformatting SWORD data. This can take a while \n")
