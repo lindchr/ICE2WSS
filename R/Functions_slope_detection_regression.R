@@ -12,7 +12,6 @@
 #' @param output_file Name of output file. Created automatically by the script
 #' @param filelist List of numbers describing files to be processed
 #' @return Nothing. File is produced in output path
-#' @export
 Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
                        Min_reg_p, Occ_thr, filelist, output_file){
 
@@ -123,7 +122,6 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
 #' @param dat Main data frame containing satellite data loaded in Find_slope
 #' @param i List of beams (1:6).
 #' @return Data frame containing original data and additional columns of SWORD data.
-#' @export
 Assign_SWORD <- function(dat,i){
    dat_beam <- dat[dat$Beam == i,]
 
@@ -170,7 +168,6 @@ Assign_SWORD <- function(dat,i){
 #' @param dat Main data frame containing satellite and SWORD data
 #' @param myProj String containing UTM projection. Is determined based on lat and lon.
 #' @return Main data frame containing outlier filtered data.
-#' @export
 Filter_data <- function(dat,myProj){
   return_dat <- c()
 
@@ -227,7 +224,6 @@ Filter_data <- function(dat,myProj){
 #' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
 #' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
 #' @return Data frame of slopes with additional information
-#' @export
 Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
    output <- dat[1,]
    output$Slope_lon <- NA
@@ -406,7 +402,6 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
 #'
 #' @param dat Main data frame containing satellite and SWORD data
 #' @return Main data frame including coordinates for the projected position and the intersection angle between river and satellite
-#' @export
 project_to_centerline <- function(dat){
 
    Project_angle <- c()
@@ -476,7 +471,6 @@ project_to_centerline <- function(dat){
 #' @param centerLineLL Coordinates of SWORD centerline in degrees (lon,lat)
 #' @param myProj String containing UTM projection. Is determined based on lat and lon.
 #' @return Standard data frame now including the position along the river relative to arbitrary point
-#' @export
 CalcDist<-function(dat,centerLineLL,myProj){
 
    xy<-rgdal::project(as.matrix(centerLineLL[,1:2]), myProj)
@@ -533,14 +527,12 @@ CalcDist<-function(dat,centerLineLL,myProj){
 #' @param v Point coordinates
 #' @param w input coordinate
 #' @return Distance
-#' @export
 getdist<-function(v, w)sqrt((v[1] - w[1])^2 + (v[2] - w[2])^2)
 
 #' Projects satellite data onto the centerline
 #'
 #' @param dat Main data frame
 #' @return Reprojected data
-#' @export
 Project <- function(dat){
    as.vector(dat[1:2]%*%dat[3:4]) / (as.vector(dat[3:4] %*% dat[3:4])) *as.vector(dat[3:4])
 
@@ -551,7 +543,6 @@ Project <- function(dat){
 #'
 #' @param dat Main data frame
 #' @return Intersection angle
-#' @export
 Project_angle <- function(dat){
 
    v5 <- atan2(dat[2],dat[1])*180/pi
@@ -573,7 +564,6 @@ Project_angle <- function(dat){
 #' @param Version String. String containing SWORD version to use
 #' @param Area String. String containing SWORD area to use
 #' @return Nothing. Data is loaded
-#' @export
 handle_SWORD <- function(SWORD_dir, Version, Area){
 
    if(exists("SWORD_dat")){#If data is already loaded into R
