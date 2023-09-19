@@ -1,9 +1,3 @@
-#####################################
-#Extract slope from ATL13 data
-#Load .dat files produced by sript Extract_ATL13
-#Choose data representing the river, and calculate the slope
-###################################
-
 
 #' Calculate River water surface slopes using satellite data and river centre lines
 #'
@@ -22,10 +16,14 @@
 #' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
 #' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
 #' @param Occ_thr A number. Minimum water surface occurrence accepted. See https://global-surface-water.appspot.com/
+#' @importFrom foreach %dopar%
 #' @return Nothing. File is produced in output path
 #' @export
 ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
                      Min_reg_p=10 , Occ_thr=NA){
+   SWORD_dat <- NA
+   i <- NA
+   output_file <- NA
 
    if (missing(Paths) == TRUE) {stop(paste(as.character(Sys.time()),"Error: Required paths are not provided. See documentation."))}
    if (missing(Files)== TRUE) {stop(paste(as.character(Sys.time()),"Error: List of file to process is not provided."))}
@@ -42,7 +40,7 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    if (!is.character(Paths) | !length(Paths)==3) {stop(paste(as.character(Sys.time()),"Error: Paths is not character of required folder paths or does not contain 3 elements (Outdir, ATL13dir,SWORDdir)."))}
    if (!is.character(SWORD) | !length(SWORD)==2) {stop(paste(as.character(Sys.time()),"Error: SWORD is not character of required SWORD info or does not contain 2 elements (version, area)."))}
    if (!is.numeric(Files)) {stop(paste(as.character(Sys.time()),"Error: Files does not contains indices for files to process."))}
-
+   if (! SWORD[2] %in% c("as", "oc", "na", "sa", "af", "eu")) {stop(paste(as.character(Sys.time()),"SWORD area invalid."))}
    options(scipen=999)
 
    #Check paths and create output file
@@ -51,44 +49,45 @@ ICE2WSS <- function(Paths, Files, SWORD, Max_reg_dist=8000, Min_reg_dist = 400,
    if (!dir.exists(Paths[3])) {stop(paste(as.character(Sys.time()),"Error: Path to input SWORD data does not exist."))}
    ifelse(!dir.exists(Paths[1]), dir.create(Paths[1]), FALSE)
 
+   #### Process files
+   filelist <- list.files(Paths[2],full.names = TRUE)
+   if (max(Files) > length(filelist)) {stop(paste(as.character(Sys.time()),"Error: Files to process exceeds maximum files available."))}
+
+
    Colnames <- data.frame(matrix(c("DecYear","Lon [deg]","Lat [deg]","WSS [cm/km]","StdError [cm/km]","IntersectAngle [deg]","Nobs",
                                  "Resolution [m]","pVal","R2","WSE","WaterID","Beam","ReachID","NodeID","ReachDEMSlope [cm/km]")   ,nrow=1))
 
    file_timestamp <- format(Sys.time(), "%d%m%Y_%H%M")
    output_file <<- paste(Paths[1],"/WSS_",file_timestamp,".txt",sep="")
-   utils::write.table(Colnames, file = output_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ", ",quote = FALSE)
+   cat(substr(as.character(Sys.time()),1,16),"Results written to output file: ", output_file,"\n")
+   utils::write.table(Colnames, file = output_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ",",quote = FALSE)
 
-   handle_SWORD(Paths[3], SWORD[1], SWORD[2])
+   Log_file <- paste(Paths[1],"/Log_",file_timestamp,".txt",sep="")
+   cat(substr(as.character(Sys.time()),1,16),"Progress written to log file: ", Log_file,"\n")
+   utils::write.table(paste0("Current settings: Paths=",Paths[1],", ",Paths[2],", ",Paths[3], ", SWORD=",SWORD[1]," ",SWORD[2], ", Max_reg_dist=",Max_reg_dist,", Min_reg_dist=",Min_reg_dist,", Min_reg_p",Min_reg_p,", Occ_thr=",Occ_thr), file = Log_file, row.names = FALSE, append = FALSE, col.names = FALSE, sep = ",",quote = FALSE)
+   utils::write.table(" ", file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
 
-   #### Process files
-   filelist <- list.files(Paths[2],full.names = TRUE)
-   start_time <- Sys.time()
+   SWORD_dat <- handle_SWORD(Paths[3], SWORD[1], SWORD[2],Log_file)
 
-   # #library(parallel)
-   # #library(doParallel)
-   # #library(doMC)
-   # #library(doSNOW)
-   #
-   # #Cores to be used: All-1
-   # C <- parallel::detectCores(all.tests = FALSE, logical = TRUE) -1
-   # cl <- makeCluster(C)
-   # registerDoParallel(cl)
-   # clusterExport(cl, "SWORD_dat")
-   # clusterExport(cl, "output_file")
-   # foreach(i=Files) %dopar% {
-   #    source("/home/linda/ICE2WSS_github/ICE2WSS/R/Functions_slope_detection_regression.R")
-   #
-   #    Find_slope(Paths, i, SWORD_dat, Max_reg_dist, Min_reg_dist,Min_reg_p, Occ_thr,filelist,output_file)
-   # }
-   # stopCluster(cl)
+   #Cores to be used: All-1
+   C <- parallel::detectCores(all.tests = FALSE, logical = TRUE) -1
+   cl <- parallel::makeCluster(C,outfile = Log_file)
+   utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Running program with", length(cl),"threads \n"), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+   doParallel::registerDoParallel(cl)
+   parallel::clusterExport(cl, "SWORD_dat")
+   parallel::clusterExport(cl, "output_file")
+   #parallel::clusterExport(cl, "Log_file")
+   foreach::foreach(i=Files, .packages=c("ICE2WSS")) %dopar% {
+      ICE2WSS::Find_slope(Paths, i, SWORD_dat, Max_reg_dist, Min_reg_dist,Min_reg_p, Occ_thr,filelist,output_file,SWORD_dat)
+   }
+   parallel::stopCluster
+   parallel::stopCluster(cl)
 
+   # lapply(Files, function(Files)Find_slope(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist,
+   #                                                    Min_reg_p, Occ_thr,filelist,output_file))
 
-   #output <- parallel::mclapply(Files, function(Files)Find_slope(Files))
-   output <- lapply(Files, function(Files)Find_slope(Paths, Files, SWORD, Max_reg_dist, Min_reg_dist,
-                                                  Min_reg_p, Occ_thr,filelist,output_file))
-
-   end_time <- Sys.time()
-   cat(as.character(Sys.time()),"Total processing time:", end_time - start_time," \n")
+   utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Computations completed"), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+   cat(substr(as.character(Sys.time()),1,16),"Computations completed \n")
 
 }
 

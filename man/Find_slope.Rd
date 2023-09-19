@@ -14,7 +14,8 @@ Find_slope(
   Min_reg_p,
   Occ_thr,
   filelist,
-  output_file
+  output_file,
+  SWORD_dat
 )
 }
 \arguments{
@@ -35,9 +36,11 @@ Find_slope(
 \item{filelist}{List of numbers describing files to be processed}
 
 \item{output_file}{Name of output file. Created automatically by the script}
+
+\item{SWORD_dat}{Data frame with loaded SWORD data}
 }
 \value{
-Nothing. File is produced in output path
+Output file is produced in output path
 }
 \description{
 Find_slope

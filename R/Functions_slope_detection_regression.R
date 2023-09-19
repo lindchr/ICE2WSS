@@ -11,21 +11,27 @@
 #' @param Occ_thr A number. Minimum water surface occurrence accepted
 #' @param output_file Name of output file. Created automatically by the script
 #' @param filelist List of numbers describing files to be processed
-#' @return Nothing. File is produced in output path
+#' @param SWORD_dat Data frame with loaded SWORD data
+#' @return Output file is produced in output path
+#' @export
 Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
-                       Min_reg_p, Occ_thr, filelist, output_file){
+                       Min_reg_p, Occ_thr, filelist, output_file, SWORD_dat){
 
-   #if(file2 %% 10 == 0){
-      cat(as.character(Sys.time()),"Progress: Running file",file2,"\n") # in parallel with other files. \n")
-   #}
+   if(file2 %% 5 == 0){
+      cat(substr(as.character(Sys.time()),1,16),"Progress: Running file",file2,"\n")
+      #utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Progress: Running file",file2), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+   }
 
    test <- try(utils::read.table(filelist[file2],sep=",",header=FALSE),silent=TRUE)
 
    if(class(test) == "try-error"){
       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],".\n",test[1],"\n")
+      #utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Load input data failed for file",filelist[file2]), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+      #utils::write.table(paste(substr(as.character(Sys.time()),1,16),test[1]), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
       return()
    } else if (file.info(filelist[file2])$size == 0){
       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],". File is empty. \n")
+      #utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Load input data failed for file",filelist[file2],". File is empty."), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
       return()
    } else {
       dat <- utils::read.table(filelist[file2],sep=",",header=FALSE)
@@ -35,6 +41,7 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
 
    if(test ==FALSE){
       cat(substr(as.character(Sys.time()),1,16), "Load input data failed for file",filelist[file2],". Wrong number of columns:",dim(dat)[2]," \n")
+      #utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Load input data failed for file",filelist[file2],". Wrong number of columns:",dim(dat)[2]), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
       return()
    }
 
@@ -62,7 +69,7 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
    if(any(dat$Beam > 6 | dat$Beam < 1)) {warning(paste(as.character(Sys.time()),"Warning: Beam number is not value between 1 and 6. Ensure that input data are correct."))}
 
    i <- c(1:6)
-   beams_out <- lapply(i,function(i)Assign_SWORD(dat,i))
+   beams_out <- lapply(i,function(i)Assign_SWORD(dat,i,SWORD_dat))
    beams_out <- as.data.frame(sapply(do.call(rbind, beams_out),as.numeric))
 
    if(dim(beams_out)[1] == 35 & dim(beams_out)[2] == 1 | dim(beams_out)[1] == 36 & dim(beams_out)[2] == 1){
@@ -80,9 +87,15 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
    beams_out <- beams_out[order(beams_out$Node_id),]
 
    #Calculate UTM corr to get distance along centerline in meters
-   UTM_zone <- round((beams_out$centerline_lon[1]+180)/6)
-   myProj<-as.character(paste("+proj=utm +zone=",UTM_zone," +north ellps=WGS84",sep=""))
-   xydat<- rgdal::project(as.matrix(cbind(beams_out$centerline_lon,beams_out$centerline_lat)), as.character(myProj))
+   UTM_zone <- stats::median(round((beams_out$centerline_lon+180)/6))
+   NS_zone <- ifelse(stats::median(beams_out$centerline_lat) > 0, "north","south")
+   myProj<-as.character(paste("+proj=utm +zone=",UTM_zone," +",NS_zone," +datum=WGS84",sep=""))
+
+   df <- data.frame(lon = beams_out$centerline_lon, lat = beams_out$centerline_lat)
+   df <- sf::st_as_sf(df, coords = c('lon', 'lat'), crs = 4326)
+   xydat <- sf::st_transform(df, myProj)
+   xydat <- sf::st_coordinates(xydat)
+
    beams_out$UTM_E <- xydat[,1]
    beams_out$UTM_N <- xydat[,2]
 
@@ -91,7 +104,7 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
       return()
    }
 
-   slope_output <- Calc_slope(beams_out,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p)
+   slope_output <- Calc_slope(beams_out,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p,SWORD_dat)
 
    if(is.null(slope_output)){
       return()
@@ -112,8 +125,11 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
    output[,6] <- format(round(as.numeric(output[,6]),digits=1),nsmall = 1)
    output[,c(4,5,8,9,10,11)] <- format(round(output[,c(4,5,8,9,10,11)], digits=4), nsmall = 4)
 
-   utils::write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ", ",quote = FALSE)
-   return(output)
+   locked <- flock::lock(output_file)
+   utils::write.table(output, file = output_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+   locked <- flock::unlock(locked)
+
+   #return(output)
 }
 
 
@@ -121,8 +137,9 @@ Find_slope <- function(Paths, file2, SWORD, Max_reg_dist, Min_reg_dist,
 #'
 #' @param dat Main data frame containing satellite data loaded in Find_slope
 #' @param i List of beams (1:6).
+#' @param SWORD_dat Data frame with loaded SWORD data
 #' @return Data frame containing original data and additional columns of SWORD data.
-Assign_SWORD <- function(dat,i){
+Assign_SWORD <- function(dat,i,SWORD_dat){
    dat_beam <- dat[dat$Beam == i,]
 
    if(dim(dat_beam)[1] < 1){
@@ -132,11 +149,8 @@ Assign_SWORD <- function(dat,i){
    knn <- as.data.frame(RANN::nn2(SWORD_dat[,c(2,3)],dat_beam[,c(3,2)],k=1))
    knn <- knn[!(knn$nn.idx=0), ] #Remove end nodes - rest of script does not work for these.
 
-   dat_beam <- cbind(dat_beam,SWORD_dat[knn$nn.idx,])
+   dat_beam <- cbind(dat_beam,SWORD_dat[knn$nn.idx,c(1:14)])
    dat_beam$type <- as.numeric(substr(SWORD_dat$Node_id[knn$nn.idx],14,15))
-
-   #next_VS_idx <- knn$nn.idx+1 #Removed may 3rd
-   #pre_VS_idx <- knn$nn.idx-1
 
    VS_up_idx <- ifelse(SWORD_dat$Node_id[knn$nn.idx+1] > SWORD_dat$Node_id[knn$nn.idx-1],knn$nn.idx+1,knn$nn.idx-1 )
    VS_dn_idx <- ifelse(SWORD_dat$Node_id[knn$nn.idx+1] > SWORD_dat$Node_id[knn$nn.idx-1],knn$nn.idx-1,knn$nn.idx+1 )
@@ -189,15 +203,12 @@ Filter_data <- function(dat,myProj){
 
       if(stats::sd(dat_id$H_ortho) > 0.2){
         # Detect global point outliers
-        GKD <- stats::density(dat_id$H_ortho) #Gaussian kernel distribution
+        GKD <- stats::density(dat_id$H_ortho)
         WSE <- GKD$x[which.max(GKD$y)]
 
-        #quartiles <- quantile(dat_id$H_ortho, probs=c(.25, .75), na.rm = FALSE) #This was removed 1 of september
         IQR <- IQR(dat_id$H_ortho)
-
         Lower <- WSE - 1.7*IQR
         Upper <- WSE + 1.7*IQR
-
         dat_id <- dat_id[dat_id$H_ortho < Upper & dat_id$H_ortho > Lower,]
 
         if(dim(dat_id)[1] < 1){
@@ -208,9 +219,9 @@ Filter_data <- function(dat,myProj){
       if((max(dat_id$H_ortho)-min(dat_id$H_ortho)) >  1.3 | stats::sd(dat_id$H_ortho > 0.5)){
         next()
       }
-    }#If dim > 2
+    }
     return_dat <- rbind(return_dat,dat_id)
-  }#For each node id
+  }
   return(return_dat)
 }
 
@@ -223,8 +234,10 @@ Filter_data <- function(dat,myProj){
 #' @param Max_reg_dist A number. Maximum distance along river accepted for slope calculation
 #' @param Min_reg_dist A number. Minimum distance along river accepted for slope calculation
 #' @param Min_reg_p A number. Minimum number of water surface elevation points needed for slope calculation
+#' @param SWORD_dat Data frame with loaded SWORD data
+#' @importFrom stats median
 #' @return Data frame of slopes with additional information
-Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
+Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p,SWORD_dat){
    output <- dat[1,]
    output$Slope_lon <- NA
    output$Slope_lat <- NA
@@ -257,14 +270,14 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
       approved_ID <- which(dat$Reach_id[use_id] %in% ID_list)
       use_id <- use_id[approved_ID]
 
-      if(length(use_id) < Min_reg_p){                          #cat("Not enough regression_dat with this reach id, XX jumps ",2*Min_reg_p,"\n")
+      if(length(use_id) < Min_reg_p){
          XX <- XX + 2*Min_reg_p
          next()
       }
 
       regression_dat <- dat[use_id,]
 
-      if(length(unique(stats::na.omit(regression_dat$WaterID))) > 1){  #cat("Contains multiple water bodies. This can remove the reach id assigned to XX \n")
+      if(length(unique(stats::na.omit(regression_dat$WaterID))) > 1){  #Contains multiple water bodies.
          dist1 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[1]]
          dist2 <- regression_dat$dist_to_VS[regression_dat$WaterID == unique(regression_dat$WaterID)[2]]
          if(mean(dist1) > mean(dist2)){
@@ -276,7 +289,7 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
             total_used <- c(total_used,id_reject)              #This rejects the points with waterID far from centerline
                                                                #If this is not done, we can get a slope using only a lake.
                                                                #This will be assigned to the reach id and give the impression that the slope changes
-            if(length(use_id) < Min_reg_p){                    #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
+            if(length(use_id) < Min_reg_p){
                XX <- XX+2*Min_reg_p
                next()
             }
@@ -288,7 +301,7 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
             id_reject <- which(regression_dat$WaterID == unique(regression_dat$WaterID)[2])
             total_used <- c(total_used,id_reject)
 
-            if(length(use_id) < Min_reg_p){                    #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
+            if(length(use_id) < Min_reg_p){
                XX <- XX+2*Min_reg_p
                next()
             }
@@ -296,7 +309,7 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
       }
 
       if(min(regression_dat$dist_to_VS) > 0.01){               #In case we only have accepted points in a lake
-         XX <- XX+round(length(regression_dat[,1])/2)          #cat("too large dist to centerline (maybe lake ID), XX jumps 30 \n")
+         XX <- XX+round(length(regression_dat[,1])/2)
          next()
       }
 
@@ -308,7 +321,7 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
       regression_dat$river_dist <- dist[,3]-dist[1,3]
 
       ID <- which(regression_dat$river_dist > -Max_reg_dist)   #These are the points that I must reject as they are too far from other points
-      if(length(ID) < Min_reg_p){                              #cat("Too few points within the 8 kilometerw, XX jumps",2*Min_reg_p,"\n")
+      if(length(ID) < Min_reg_p){
          XX <- XX+2*Min_reg_p
          next()
       }
@@ -316,14 +329,14 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
       regression_dat <- regression_dat[ID,]
 
       ID <- which(regression_dat$river_dist < (Max_reg_dist-abs(min(regression_dat$river_dist))) )#Accept points that cover less than Max_reg_dist
-      if(length(ID) < Min_reg_p){                              #cat("Too few points within acceptable regression dist, XX jumps",2*Min_reg_p,"\n")
+      if(length(ID) < Min_reg_p){
          XX <- XX+2*Min_reg_p
          next()
       }
       regression_dat <- regression_dat[ID,]
 
       if(max(regression_dat$river_dist)-min(regression_dat$river_dist) < Min_reg_dist ){ #If all dists within Max_reg_dist are less than Min_reg_dist, then all dists are less than Min_reg_dist meters apart
-         XX <- XX + 20                                         #cat("Regression_dist:", max(regression_dat$river_dist)-min(regression_dat$river_dist), "XX jumps",20,\n")
+         XX <- XX + 20
          next()
       }
 
@@ -387,7 +400,6 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
 
       XX <- XX+length(use_id)+1
       total_used <- c(total_used,use_id)
-
    }
    if(!(count == 0)){
       return(output)
@@ -395,7 +407,6 @@ Calc_slope <- function(dat,myProj,Max_reg_dist,Min_reg_dist,Min_reg_p){
       return()
    }
 }
-
 
 
 #' Projects satellite data onto river centrline based on nearby SWORD nodes.
@@ -458,10 +469,8 @@ project_to_centerline <- function(dat){
          Projected_lon <- c(Projected_lon,newdat$Lon_node + Project_coor[1,])
          Projected_lat <- c(Projected_lat,newdat$Lat_node + Project_coor[2,])
       }
-
       Project_angle[newid] <- Angle
    }
-
    return(cbind(centerline_lon = Projected_lon, centerline_lat=Projected_lat,IntersectAngle = Project_angle))
 }
 
@@ -473,7 +482,11 @@ project_to_centerline <- function(dat){
 #' @return Standard data frame now including the position along the river relative to arbitrary point
 CalcDist<-function(dat,centerLineLL,myProj){
 
-   xy<-rgdal::project(as.matrix(centerLineLL[,1:2]), myProj)
+   df <- data.frame(lon = centerLineLL[,1], lat = centerLineLL[,2])
+   df <- sf::st_as_sf(df, coords = c('lon', 'lat'), crs = 4326)
+   xy <- sf::st_transform(df, myProj)
+   xy <- sf::st_coordinates(xy)
+
    xydat <- dat[,1:2]
 
    # calculate length of line segments of centerLine
@@ -489,37 +502,35 @@ CalcDist<-function(dat,centerLineLL,myProj){
    alpha<-(EndPy-BeginPy)/(EndPx-BeginPx)
 
    #identify line segment and get dist
-   MyPos<-matrix(NA,nrow=nrow(xydat),ncol=3)
+   MyPos <- matrix(NA,nrow=nrow(xydat),ncol=3)
    sat <- xydat[,1:2] ################ This is my line
    MyPos[,1:2]<-sat[,1:2]
 
    for(i in 1:nrow(MyPos)){
-      id<-which.min(sqrt((sat[i,1]-begin[,1])^2+(sat[i,2]-begin[,2])^2))
+      id <- which.min(sqrt((sat[i,1]-begin[,1])^2 + (sat[i,2]-begin[,2])^2))
 
-      if(abs(sat[i,1]-begin[id,1])<0.00001){
-         alphap<-(sat[i,2]-end[id,2])/(sat[i,1]-end[id,1])
-      } else{alphap<-(sat[i,2]-begin[id,2])/(sat[i,1]-begin[id,1])}
+      if(abs(sat[i,1]-begin[id,1]) < 0.00001){
+         alphap <- (sat[i,2]-end[id,2])/(sat[i,1]-end[id,1])
+      } else{alphap <- (sat[i,2]-begin[id,2])/(sat[i,1]-begin[id,1])}
 
-      test<-abs(alphap-alpha[id])<0.0000000001
+      test <- abs(alphap-alpha[id]) < 0.0000000001
 
       if(test){
-         if (id==1) distTOT<-getdist(sat[i,],begin[id,])
-         else distTOT<-sum(lineSegLength[1:(id-1)])+getdist(sat[i,],begin[id,])
+         if (id==1) distTOT <- getdist(sat[i,],begin[id,])
+         else distTOT <- sum(lineSegLength[1:(id-1)]) + getdist(sat[i,],begin[id,])
       } else {
          if(id==2){
-            distTOT<-getdist(sat[i,],begin[id-1,])
+            distTOT <- getdist(sat[i,],begin[id-1,])
          } else if(id==1){
-            distTOT<-getdist(sat[i,],begin[id,])
+            distTOT <- getdist(sat[i,],begin[id,])
          } else {
-            distTOT<-sum(lineSegLength[1:(id-1-1)])+getdist(sat[i,],begin[id-1,])
+            distTOT <- sum(lineSegLength[1:(id-1-1)]) + getdist(sat[i,],begin[id-1,])
          }
       }
-      MyPos[i,3]<-distTOT
+      MyPos[i,3] <- distTOT
    }
-
    return(MyPos)
 }
-
 
 
 #' Calculate distance between points
@@ -535,7 +546,6 @@ getdist<-function(v, w)sqrt((v[1] - w[1])^2 + (v[2] - w[2])^2)
 #' @return Reprojected data
 Project <- function(dat){
    as.vector(dat[1:2]%*%dat[3:4]) / (as.vector(dat[3:4] %*% dat[3:4])) *as.vector(dat[3:4])
-
 }
 
 
@@ -563,11 +573,26 @@ Project_angle <- function(dat){
 #' @param SWORD_dir String. Path to folder with SWORD data either as text file or as nc
 #' @param Version String. String containing SWORD version to use
 #' @param Area String. String containing SWORD area to use
+#' @param Log_file String. Timestamp for log file
 #' @return Nothing. Data is loaded
-handle_SWORD <- function(SWORD_dir, Version, Area){
+handle_SWORD <- function(SWORD_dir, Version, Area, Log_file){
 
    if(exists("SWORD_dat")){#If data is already loaded into R
-      cat("SWORD Data already loaded for area:",Area,"\n")
+      if(SWORD_dat$Area[1] == Area){
+         #cat(substr(as.character(Sys.time()),1,16),"SWORD data already loaded for area:",Area,"\n")
+         utils::write.table(paste(substr(as.character(Sys.time()),1,16),"SWORD data already loaded for area:",Area), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+      } else {
+         ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" )
+
+         if(!file.exists(ready_SWORD_data)){ #If file does not exist, create
+            start_time <- Sys.time()
+            Produce_SWORD_data(SWORD_dir,Area,Version)
+            end_time <- Sys.time()
+            #cat(substr(as.character(Sys.time()),1,16),"Produced SWORD data for",Area,"which took",end_time - start_time,"\n")
+            utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Produced SWORD data for area",Area,"from hsf5 file which took",end_time - start_time), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
+         }
+         SWORD_dat <- utils::read.table(ready_SWORD_data,sep=",",header=TRUE)
+      }
    } else { #If txt file already exist, create path name
       ready_SWORD_data <- paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" )
 
@@ -575,15 +600,11 @@ handle_SWORD <- function(SWORD_dir, Version, Area){
          start_time <- Sys.time()
          Produce_SWORD_data(SWORD_dir,Area,Version)
          end_time <- Sys.time()
-         cat("Loaded SWORD data for",Area,"which took",end_time - start_time,"\n")
-
+         #cat(substr(as.character(Sys.time()),1,16),"Produced SWORD data for",Area,"which took",end_time - start_time,"\n")
+         utils::write.table(paste(substr(as.character(Sys.time()),1,16),"Produced SWORD data for",Area,"which took",end_time - start_time), file = Log_file, row.names = FALSE, append = TRUE, col.names = FALSE, sep = ",",quote = FALSE)
       }
-      #Load SWORD text file
-      start_time <- Sys.time()
-      SWORD_dat <<- utils::read.table(ready_SWORD_data,sep=",",header=TRUE)
-      end_time <- Sys.time()
-      print(end_time - start_time)
+      SWORD_dat <- utils::read.table(ready_SWORD_data,sep=",",header=TRUE)
    }
+   return(SWORD_dat)
 }
-
 

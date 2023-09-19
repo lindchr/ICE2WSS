@@ -4,7 +4,7 @@
 \alias{handle_SWORD}
 \title{Loads SWORD centerlines and nodes as a text file. If this doesn't exist, the file is created based on the nc SWORD file}
 \usage{
-handle_SWORD(SWORD_dir, Version, Area)
+handle_SWORD(SWORD_dir, Version, Area, Log_file)
 }
 \arguments{
 \item{SWORD_dir}{String. Path to folder with SWORD data either as text file or as nc}
@@ -12,6 +12,8 @@ handle_SWORD(SWORD_dir, Version, Area)
 \item{Version}{String. String containing SWORD version to use}
 
 \item{Area}{String. String containing SWORD area to use}
+
+\item{Log_file}{String. Timestamp for log file}
 }
 \value{
 Nothing. Data is loaded

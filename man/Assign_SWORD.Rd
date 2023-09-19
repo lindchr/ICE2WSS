@@ -4,12 +4,14 @@
 \alias{Assign_SWORD}
 \title{Process data loaded in Find_slope. Assigns SWORD data to each satellite measurement.}
 \usage{
-Assign_SWORD(dat, i)
+Assign_SWORD(dat, i, SWORD_dat)
 }
 \arguments{
 \item{dat}{Main data frame containing satellite data loaded in Find_slope}
 
 \item{i}{List of beams (1:6).}
+
+\item{SWORD_dat}{Data frame with loaded SWORD data}
 }
 \value{
 Data frame containing original data and additional columns of SWORD data.

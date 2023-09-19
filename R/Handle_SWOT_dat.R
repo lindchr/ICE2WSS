@@ -10,7 +10,8 @@
 #' @return Nothing. File is produced in SWORD subfolder
 Produce_SWORD_data <- function(SWORD_dir,Area,Version){
 
-   cat(as.character(Sys.time()),"Reformatting SWORD data from hdf5. This can take a while \n")
+   cat(substr(as.character(Sys.time()),1,16),"Loading SWORD data from hdf5 file.\n")
+
    SWORD_nc_dir <- paste(SWORD_dir,"/SWORD_",Version,"_nc/netcdf/",Area,"_sword_",Version,".nc",sep="")
    file <- hdf5r::h5file(SWORD_nc_dir)
 
@@ -33,6 +34,7 @@ Produce_SWORD_data <- function(SWORD_dir,Area,Version){
    Reach_dat <- as.data.frame(Reach_dat,row.names = FALSE,col.names = Names)
 
    df_new <- merge(Node_dat, Reach_dat,all.x=TRUE)
+   df_new$Area <- Area
 
    utils::write.table(df_new, file = paste(SWORD_dir,"/Processed_SWORD_",Version,"_",Area,".txt",sep="" ), row.names = FALSE, append = FALSE, col.names = TRUE, sep = ",",quote = FALSE)
 
